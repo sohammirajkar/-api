@@ -60,3 +60,7 @@ async def contact(c: Contact):
     body = f"From: {c.name} <{c.email}>\n\n{c.message}"
     send_email("New contact from resume site", body)
     return {"status": "ok", "message": "Your message has been sent!"}
+
+@app.get("/")
+async def root():
+    return {"message": "Soham Contact API is running"}
