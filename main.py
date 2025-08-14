@@ -7,10 +7,10 @@ from email.message import EmailMessage
 
 app = FastAPI(title="Soham Contact API")
 
-# Allow cross-origin requests (so your frontend can call the backend)
+# Allow CORS so your frontend can call this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # you can restrict to your domain later
+    allow_origins=["*"],  # you can restrict this to your domain later
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,7 +22,12 @@ class Contact(BaseModel):
     email: str
     message: str
 
-# Function to send email (optional)
+# Root endpoint for testing
+@app.get("/")
+async def root():
+    return {"message": "Soham Contact API is running"}
+
+# Function to send an email via SMTP
 def send_email(subject: str, body: str):
     smtp_host = os.getenv("SMTP_HOST")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
@@ -31,7 +36,7 @@ def send_email(subject: str, body: str):
     to_email = os.getenv("TO_EMAIL")
 
     if not all([smtp_host, smtp_user, smtp_pass, to_email]):
-        print("Email not configured; printing message instead:\n", body)
+        print("⚠️ Email not configured — printing message instead:\n", body)
         return
 
     msg = EmailMessage()
@@ -40,14 +45,18 @@ def send_email(subject: str, body: str):
     msg["To"] = to_email
     msg.set_content(body)
 
-    with smtplib.SMTP(smtp_host, smtp_port) as s:
-        s.starttls()
-        s.login(smtp_user, smtp_pass)
-        s.send_message(msg)
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as s:
+            s.starttls()
+            s.login(smtp_user, smtp_pass)
+            s.send_message(msg)
+        print("✅ Email sent successfully")
+    except Exception as e:
+        print("❌ Error sending email:", e)
 
 # Contact endpoint
 @app.post("/contact")
 async def contact(c: Contact):
     body = f"From: {c.name} <{c.email}>\n\n{c.message}"
-    send_email("New website contact", body)
-    return {"status": "ok"}
+    send_email("New contact from resume site", body)
+    return {"status": "ok", "message": "Your message has been sent!"}
